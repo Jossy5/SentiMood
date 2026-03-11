@@ -30,7 +30,7 @@ export default function Navigator(){
 
 const myDrawerOptions = {
   drawerStyle: {
-    backgroundColor: '#B1E6D1',
+    backgroundColor: '#9bd0bb',
     width: '70%', 
   },
   headerShown: false,
