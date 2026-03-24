@@ -1,13 +1,14 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { Dimensions } from 'react-native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native'
 
-///Importacion de Pantallas desde la crapeta screens 
+///Importacion de Pantallas desde la carpeta screens
 import Principal from './screens/Principal'
 import Prueba from './screens/Prueba'
 
-
+const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const screenWidth = Dimensions.get('window').width;
 
@@ -15,7 +16,7 @@ function MyDrawer() {
   return (
     <Drawer.Navigator screenOptions={myDrawerOptions} >
       <Drawer.Screen name="Home" component={Principal} />
-      <Drawer.Screen name="Profile" component={Prueba} />
+      <Drawer.Screen name="Resumen de Resultados" component={Principal} />
     </Drawer.Navigator>
   );
 }
@@ -23,7 +24,10 @@ function MyDrawer() {
 export default function Navigator(){
     return(
         <NavigationContainer>
-            <MyDrawer></MyDrawer>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Login" component={Prueba} />
+                <Stack.Screen name="Main" component={MyDrawer} />
+            </Stack.Navigator>
         </NavigationContainer>
     );
 }
@@ -31,7 +35,7 @@ export default function Navigator(){
 const myDrawerOptions = {
   drawerStyle: {
     backgroundColor: '#9bd0bb',
-    width: '70%', 
+    width: '70%',
   },
   headerShown: false,
   drawerActiveTintColor: '#000',

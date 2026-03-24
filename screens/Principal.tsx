@@ -1,14 +1,36 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Octicons from '@expo/vector-icons/Octicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GiftedChat, Send, InputToolbar, Composer,Bubble } from 'react-native-gifted-chat'
-import { TextInput } from 'react-native-gesture-handler';
+import { GiftedChat, Send, InputToolbar, Composer, Bubble, IMessage } from 'react-native-gifted-chat';
 
+// ==========================================================
+// CONFIGURACIÓN
+// ==========================================================
+
+const API_URL = 'https://coral-app-bo9qh.ondigitalocean.app/api/v1/analyze';
+
+const respuestasPorEmocion: { [key: string]: string } = {
+  happiness: "¡Qué increíble noticia! Me alegra muchísimo leer eso. ¡Sigue con esa energía positiva!",
+  joy: "¡Qué alegría! Me encanta sentir esa buena vibra en tu mensaje.",
+  "angry/hate": "Entiendo tu frustración. A veces las situaciones son agotadoras. ¿Quieres desahogarte más?",
+  sadness: "Lamento que te sientas así. Recuerda que en el equipo estamos para apoyarte.",
+  fear: "Es normal sentir incertidumbre. No estás solo, cuéntame qué te preocupa.",
+  love: "¡Qué lindo sentimiento! Gracias por compartir ese lado positivo.",
+  surprise: "¡Vaya, eso no lo esperaba! Cuéntame más detalles.",
+  default: "Gracias por compartir cómo te sientes. Estoy aquí para escucharte."
+};
+
+const BOT_USER = {
+  _id: 2,
+  name: 'Bot de RRHH',
+  avatar: 'https://ui-avatars.com/api/?name=Bot&background=9bd0bb&color=fff',
+};
 
 export default function Principal({ navigation }) {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<IMessage[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
 
   useEffect(() => {
     setMessages([
@@ -16,20 +38,72 @@ export default function Principal({ navigation }) {
         _id: 1,
         text: 'Hola. ¿Cómo te sientes el día de hoy?',
         createdAt: new Date(),
-        user: {
-          name: 'Bot de RRHH',
-          avatar: 'https://ui-avatars.com/api/?name=Bot&background=9bd0bb&color=fff',
-        },
+        user: BOT_USER,
       },
     ]);
   }, []);
 
-  const onSend = useCallback((messages = []) => {
-    setMessages(previousMessages =>
-      GiftedChat.append(previousMessages, messages),
-    );
+  // ==========================================================
+  // LÓGICA DE CONEXIÓN CON EL BACKEND
+  // ==========================================================
+  const onSend = useCallback(async (newMessages: IMessage[] = []) => {
+    setMessages(previousMessages => GiftedChat.append(previousMessages, newMessages));
+
+    const mensajeTexto = newMessages[0].text;
+    setIsTyping(true);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: mensajeTexto,
+          area: "infrastructure"
+        }),
+      });
+
+      if (!response.ok) throw new Error("Error en la respuesta del servidor");
+
+      const data = await response.json();
+      console.log("Datos recibidos de DigitalOcean:", data);
+
+      let textoFinal = "";
+
+      if (data.emotion && data.emotion.bot_response) {
+        textoFinal = data.emotion.bot_response;
+      } else if (data.emotion && data.emotion.label && respuestasPorEmocion[data.emotion.label]) {
+        textoFinal = respuestasPorEmocion[data.emotion.label];
+      } else {
+        textoFinal = respuestasPorEmocion.default;
+      }
+
+      const botMessage: IMessage = {
+        _id: Math.random().toString(36).substring(7),
+        text: textoFinal,
+        createdAt: new Date(),
+        user: BOT_USER,
+      };
+
+      setMessages(previousMessages => GiftedChat.append(previousMessages, [botMessage]));
+
+    } catch (error) {
+      console.error("Error de conexión con DigitalOcean:", error);
+
+      const errorMessage: IMessage = {
+        _id: 'error-' + Date.now(),
+        text: "Lo siento, no pude conectar con el servidor. Intenta de nuevo más tarde.",
+        createdAt: new Date(),
+        user: BOT_USER,
+      };
+      setMessages(previousMessages => GiftedChat.append(previousMessages, [errorMessage]));
+    } finally {
+      setIsTyping(false);
+    }
   }, []);
 
+  // ==========================================================
+  // RENDERERS DE UI (sin cambios)
+  // ==========================================================
   const renderSend = (props) => {
     return (
       <Send {...props} containerStyle={{ justifyContent: 'center' }}>
@@ -47,7 +121,6 @@ export default function Principal({ navigation }) {
           {...props}
         ></Composer>
       </View>
-
     );
   };
 
@@ -67,11 +140,10 @@ export default function Principal({ navigation }) {
       {...props}
       wrapperStyle={{
         right:{backgroundColor: '#9bd0bb'}
-        
       }}
       textStyle={{
           right: {
-            fontSize: 15 
+            fontSize: 15
           },
         }}
       />
@@ -89,13 +161,12 @@ export default function Principal({ navigation }) {
             messages={messages}
             onSend={messages => onSend(messages)}
             user={{ _id: 1 }}
-
             renderSend={renderSend}
             renderInputToolbar={renderInputToolbar}
             renderComposer={renderComposer}
             renderBubble={renderBubble}
-
             showUserAvatar={false}
+            isTyping={isTyping}
             isSendButtonAlwaysVisible
           />
         </View>
@@ -137,7 +208,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999
-
   },
   sendButton: {
     backgroundColor: '#9bd0bb',
@@ -147,7 +217,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft:5
-
   },
   toolbarContainer: {
     borderTopWidth: 0,
