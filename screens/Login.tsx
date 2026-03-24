@@ -44,11 +44,12 @@ export default function Prueba({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <ImageBackground source={require('../imagenes/foto_login.jpeg')} blurRadius={80} style={styles.container}>
         <View style={styles.formContainer}>
-          <Input
+          <View style={styles.inputContainer}>
+            <Input
             placeholder='Correo'
-            placeholderTextColor="rgba(255,255,255,0.7)"
+            placeholderTextColor="black"
             inputStyle={styles.inputText}
-            leftIcon={<FontAwesome name="user-circle-o" size={24} color="white" />}
+            leftIcon={<FontAwesome name="user-circle-o" size={24} color="black" />}
             value={correo}
             onChangeText={setCorreo}
             keyboardType="email-address"
@@ -57,9 +58,9 @@ export default function Prueba({ navigation }: any) {
           <Input
             secureTextEntry
             placeholder='Contraseña'
-            placeholderTextColor="rgba(255,255,255,0.7)"
+            placeholderTextColor="black"
             inputStyle={styles.inputText}
-            leftIcon={<Feather name="lock" size={24} color="white" />}
+            leftIcon={<Feather name="lock" size={24} color="black" />}
             value={contrasena}
             onChangeText={setContrasena}
           />
@@ -70,6 +71,7 @@ export default function Prueba({ navigation }: any) {
             onPress={handleLogin}
             disabled={cargando}
           />
+          </View>
         </View>
       </ImageBackground>
     </SafeAreaView>
@@ -85,13 +87,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingBottom: 60,
+    
   },
+  inputContainer: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    width: '100%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+
   inputText: {
-    color: 'white',
+    color: 'black',
   },
   loginButton: {
     backgroundColor: '#9bd0bb',
-    borderColor: '#FFF',
+    borderColor: 'white',
     borderWidth: 1,
     borderRadius: 30,
     height: 50,

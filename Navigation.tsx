@@ -6,7 +6,8 @@ import { NavigationContainer } from '@react-navigation/native'
 
 ///Importacion de Pantallas desde la carpeta screens
 import Principal from './screens/Principal'
-import Prueba from './screens/Prueba'
+import Dashboard from './screens/Dashboard';
+import Login from './screens/Login';
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -16,7 +17,7 @@ function MyDrawer() {
   return (
     <Drawer.Navigator screenOptions={myDrawerOptions} >
       <Drawer.Screen name="Home" component={Principal} />
-      <Drawer.Screen name="Resumen de Resultados" component={Principal} />
+      <Drawer.Screen name="Resumen de Resultados" component={Dashboard} />
     </Drawer.Navigator>
   );
 }
@@ -25,7 +26,7 @@ export default function Navigator(){
     return(
         <NavigationContainer>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Login" component={Prueba} />
+                <Stack.Screen name="Login" component={Login} />
                 <Stack.Screen name="Main" component={MyDrawer} />
             </Stack.Navigator>
         </NavigationContainer>
