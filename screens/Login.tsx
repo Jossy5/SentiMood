@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
-import { View, SafeAreaView, StyleSheet, ImageBackground, Alert } from 'react-native'
+import { View, StyleSheet, ImageBackground, Alert, TouchableOpacity } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { Input, Button } from '@rneui/themed';
-import { FontAwesome, Feather } from '@expo/vector-icons';
+import { FontAwesome, Feather, Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Prueba({ navigation }: any) {
   const [correo, setCorreo] = useState('');
@@ -32,7 +34,15 @@ export default function Prueba({ navigation }: any) {
         return;
       }
 
-      navigation.navigate('Main');
+      console.log("Respuesta del login:", JSON.stringify(data));
+
+      const userData = { name: data.user.name, username: data.user.username };
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main', params: { user: userData } }],
+      });
     } catch (error) {
       Alert.alert('Error de conexión', 'No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
@@ -43,16 +53,20 @@ export default function Prueba({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground source={require('../imagenes/foto_login.jpeg')} blurRadius={80} style={styles.container}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Input
-            placeholder='Correo'
+            placeholder='Usuario'
             placeholderTextColor="black"
             inputStyle={styles.inputText}
             leftIcon={<FontAwesome name="user-circle-o" size={24} color="black" />}
             value={correo}
             onChangeText={setCorreo}
-            keyboardType="email-address"
             autoCapitalize="none"
           />
           <Input
@@ -81,6 +95,18 @@ export default function Prueba({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backButton: {
+    backgroundColor: '#9bd0bb',
+    borderWidth: 1,
+    borderColor: 'white',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 15,
+    marginTop: 10,
   },
   formContainer: {
     flex: 1,

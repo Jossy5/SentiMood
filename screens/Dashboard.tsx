@@ -1,39 +1,25 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
+import { BarChart, PieChart } from 'react-native-chart-kit';
+import { Ionicons } from '@expo/vector-icons';
 
 const screenWidth = Dimensions.get('window').width;
+const API_URL = 'https://coral-app-bo9qh.ondigitalocean.app/api/v1/analytics/emotions';
 
 // ==========================================================
-// DATOS (fijos por ahora, fáciles de reemplazar con API)
+// COLORES POR EMOCIÓN
 // ==========================================================
 
-const kpis = [
-  { titulo: 'Satisfacción General', valor: '78%', color: '#9bd0bb' },
-  { titulo: 'Participación', valor: '85%', color: '#6cb4ee' },
-  { titulo: 'Estrés Promedio', valor: '32%', color: '#f4a261' },
-  { titulo: 'Retención', valor: '91%', color: '#e76f51' },
-];
-
-const emocionesPorCategoria = {
-  labels: ['Alegría', 'Tristeza', 'Enojo', 'Miedo', 'Amor', 'Sorpresa'],
-  datasets: [{ data: [42, 15, 10, 8, 18, 7] }],
+const coloresEmocion: { [key: string]: string } = {
+  'Satisfacción': '#9bd0bb',
+  'Frustración': '#e76f51',
+  'Desmotivación': '#6cb4ee',
+  'Inseguridad': '#f4a261',
+  'Impacto': '#fbbf24',
+  'Neutral': '#a78bfa',
+  'Rechazo': '#ef4444',
 };
-
-const tendenciaMensual = {
-  labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-  datasets: [{ data: [65, 70, 68, 75, 72, 78], strokeWidth: 2 }],
-};
-
-const distribucionEmociones = [
-  { name: 'Alegría', population: 42, color: '#9bd0bb', legendFontColor: '#333', legendFontSize: 13 },
-  { name: 'Tristeza', population: 15, color: '#6cb4ee', legendFontColor: '#333', legendFontSize: 13 },
-  { name: 'Enojo', population: 10, color: '#f4a261', legendFontColor: '#333', legendFontSize: 13 },
-  { name: 'Miedo', population: 8, color: '#e76f51', legendFontColor: '#333', legendFontSize: 13 },
-  { name: 'Amor', population: 18, color: '#a78bfa', legendFontColor: '#333', legendFontSize: 13 },
-  { name: 'Sorpresa', population: 7, color: '#fbbf24', legendFontColor: '#333', legendFontSize: 13 },
-];
 
 const chartConfig = {
   backgroundGradientFrom: '#fff',
@@ -61,9 +47,87 @@ function KPICard({ titulo, valor, color }: { titulo: string; valor: string; colo
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ navigation }) {
+  const [emociones, setEmociones] = useState<{ emotion: string; count: number }[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    fetchEmociones();
+  }, []);
+
+  const fetchEmociones = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const json = await response.json();
+      if (json.status === 'success') {
+        setEmociones(json.data);
+      }
+    } catch (error) {
+      console.error('Error al obtener emociones:', error);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Calcular datos derivados
+  const totalRegistros = emociones.reduce((sum, e) => sum + e.count, 0);
+
+  const emocionDominante = emociones.length > 0
+    ? emociones.reduce((max, e) => e.count > max.count ? e : max, emociones[0])
+    : { emotion: '-', count: 0 };
+
+  const satisfaccion = emociones.find(e => e.emotion === 'Satisfacción');
+  const porcentajeSatisfaccion = totalRegistros > 0 && satisfaccion
+    ? Math.round((satisfaccion.count / totalRegistros) * 100)
+    : 0;
+
+  const negativas = emociones
+    .filter(e => ['Frustración', 'Desmotivación', 'Inseguridad', 'Rechazo'].includes(e.emotion))
+    .reduce((sum, e) => sum + e.count, 0);
+  const porcentajeNegativas = totalRegistros > 0
+    ? Math.round((negativas / totalRegistros) * 100)
+    : 0;
+
+  const kpis = [
+    { titulo: 'Total Registros', valor: `${totalRegistros}`, color: '#9bd0bb' },
+    { titulo: 'Emoción Dominante', valor: emocionDominante.emotion, color: coloresEmocion[emocionDominante.emotion] || '#6cb4ee' },
+    { titulo: 'Satisfacción', valor: `${porcentajeSatisfaccion}%`, color: '#9bd0bb' },
+    { titulo: 'Emociones Negativas', valor: `${porcentajeNegativas}%`, color: '#e76f51' },
+  ];
+
+  // Datos para gráfico de barras
+  const barData = {
+    labels: emociones.map(e => e.emotion.substring(0, 6)),
+    datasets: [{ data: emociones.map(e => e.count) }],
+  };
+
+  // Datos para gráfico de pie
+  const pieData = emociones.map(e => ({
+    name: e.emotion,
+    population: e.count,
+    color: coloresEmocion[e.emotion] || '#ccc',
+    legendFontColor: '#333',
+    legendFontSize: 12,
+  }));
+
+  if (cargando) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#9bd0bb" />
+        <Text style={{ marginTop: 10, color: '#888' }}>Cargando datos...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.drawerContainer}>
+        <TouchableOpacity
+          style={styles.drawerButton}
+          onPress={() => navigation.openDrawer()}>
+          <Ionicons name="menu" size={28} color="white" />
+        </TouchableOpacity>
+      </View>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.header}>Clima Laboral</Text>
 
@@ -75,52 +139,53 @@ export default function Dashboard() {
         </View>
 
         {/* Gráfico de Barras */}
-        <View style={styles.chartCard}>
-          <Text style={styles.chartTitulo}>Emociones Detectadas</Text>
-          <BarChart
-            data={emocionesPorCategoria}
-            width={screenWidth - 60}
-            height={220}
-            chartConfig={chartConfig}
-            style={styles.chart}
-            fromZero
-            showValuesOnTopOfBars
-            yAxisLabel=""
-            yAxisSuffix=""
-          />
-        </View>
-
-        {/* Gráfico de Líneas */}
-        <View style={styles.chartCard}>
-          <Text style={styles.chartTitulo}>Tendencia Mensual de Satisfacción</Text>
-          <LineChart
-            data={tendenciaMensual}
-            width={screenWidth - 60}
-            height={220}
-            chartConfig={{
-              ...chartConfig,
-              color: (opacity = 1) => `rgba(108, 180, 238, ${opacity})`,
-            }}
-            style={styles.chart}
-            bezier
-            yAxisSuffix="%"
-            yAxisLabel=""
-          />
-        </View>
+        {emociones.length > 0 && (
+          <View style={styles.chartCard}>
+            <Text style={styles.chartTitulo}>Emociones Detectadas</Text>
+            <BarChart
+              data={barData}
+              width={screenWidth - 60}
+              height={220}
+              chartConfig={chartConfig}
+              style={styles.chart}
+              fromZero
+              showValuesOnTopOfBars
+              yAxisLabel=""
+              yAxisSuffix=""
+            />
+          </View>
+        )}
 
         {/* Gráfico de Pie */}
+        {emociones.length > 0 && (
+          <View style={styles.chartCard}>
+            <Text style={styles.chartTitulo}>Distribución de Emociones</Text>
+            <PieChart
+              data={pieData}
+              width={screenWidth - 60}
+              height={220}
+              chartConfig={chartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+            />
+          </View>
+        )}
+
+        {/* Tabla de detalle */}
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitulo}>Distribución de Emociones</Text>
-          <PieChart
-            data={distribucionEmociones}
-            width={screenWidth - 60}
-            height={220}
-            chartConfig={chartConfig}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute
-          />
+          <Text style={styles.chartTitulo}>Detalle por Emoción</Text>
+          {emociones.map((e, index) => (
+            <View key={index} style={styles.tableRow}>
+              <View style={[styles.tableDot, { backgroundColor: coloresEmocion[e.emotion] || '#ccc' }]} />
+              <Text style={styles.tableEmocion}>{e.emotion}</Text>
+              <Text style={styles.tableCount}>{e.count}</Text>
+              <Text style={styles.tablePercent}>
+                {totalRegistros > 0 ? Math.round((e.count / totalRegistros) * 100) : 0}%
+              </Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -135,6 +200,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  drawerContainer: {
+    width: '25%',
+    height: '10%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  drawerButton: {
+    flex: 1,
+    position: 'absolute',
+    backgroundColor: '#9bd0bb',
+    width: 55,
+    height: 55,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999,
   },
   header: {
     fontSize: 24,
@@ -164,7 +246,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   kpiValor: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
@@ -193,5 +275,36 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 12,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  tableDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  tableEmocion: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  tableCount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    width: 40,
+    textAlign: 'right',
+  },
+  tablePercent: {
+    fontSize: 14,
+    color: '#888',
+    width: 45,
+    textAlign: 'right',
   },
 });

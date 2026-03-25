@@ -156,7 +156,7 @@ export default function Principal({ navigation }) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={{ flex: 1 }}>
-          <DrawerButton navigation={navigation} />
+          <NavigationButton navigation={navigation} />
           <GiftedChat
             messages={messages}
             onSend={messages => onSend(messages)}
@@ -175,13 +175,15 @@ export default function Principal({ navigation }) {
   );
 }
 
-function DrawerButton({ navigation }) {
+function NavigationButton({ navigation }) {
+  const isInDrawer = typeof navigation.openDrawer === 'function';
+
   return (
     <View style={styles.drawer}>
       <TouchableOpacity
         style={styles.floatingButton}
-        onPress={() => navigation.openDrawer()}>
-        <Ionicons name="menu" size={28} color="white" />
+        onPress={() => isInDrawer ? navigation.openDrawer() : navigation.goBack()}>
+        <Ionicons name={isInDrawer ? "menu" : "arrow-back"} size={28} color="white" />
       </TouchableOpacity>
     </View>
   );
